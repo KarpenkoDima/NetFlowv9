@@ -14,7 +14,7 @@ public interface INetFlowParser
     /// <summary>
     /// Supported version NetFlow protocol
     /// </summary>
-    int SupportedVersion { get; set; }
+    int SupportedVersion { get;  }
 
     /// <summary>
     /// Verify, Parser can been to parse data
