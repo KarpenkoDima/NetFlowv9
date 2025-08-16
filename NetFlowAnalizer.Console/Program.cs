@@ -2,10 +2,10 @@
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetFlowAnalizer.Core;
+using NetFlowAnalizer.Core.Models;
 using NetFlowAnalizer.Infrastructure;
 
-try
-{
+
 	using var host = CreateHostBuilder(args).Build();
 
 	var logger = host.Services.GetRequiredService<ILogger<Program>>();
@@ -13,17 +13,26 @@ try
 
 	var parser = host.Services.GetRequiredService<INetFlowParser>();
 	logger.LogInformation($"Using Parser: v{parser.SupportedVersion}");
+try
+{
+	var testData = new byte[] { 0x00, 0x09, // v9
+		0x00, 0x02, // Count =2
+		0x01, 0x23, 0x45, 0x67, // SystemUpTime = 19088743
+		0x65, 0x40, 0x2F, 0x0A, // UnuxSeconds = 1699147536 (~2023)
+		0x00, 0x00, 0x00, 0x01, // Sequence Number = 1
+		0x00, 0x00, 0x00, 0xAB // Source Id = 171
+	};
 
-	var testData = new byte[] { 0x00, 0x09 }; // v9
-	var canParse = parser.CanParse(testData);
-	logger.LogInformation($"Can parse test data:{canParse}");
+	var header = NetFlowV9Header.FromBytes(testData);
+	logger.LogInformation($"Parse header:{header}");
+	logger.LogInformation($"Header is valid: {header.IsValid}");
+	logger.LogInformation($"Timestamp: {header.Timestamp}");
 
-	logger.LogInformation("NetFlow Analizer completed successfully");
-	return 0;
+    return 0;
 }
 catch (Exception ex)
 {
-	System.Console.WriteLine($"Fatal error: {ex.Message}");
+	logger.LogError(ex, "Failed to parse NetFlow header");
 	return 1;
 }
 
