@@ -4,7 +4,7 @@ public readonly struct Result<T>
 {
     private readonly T? _value;
     private readonly string _error;
-
+   
     public bool IsSuccess { get; }
 
     public bool IsFailure { get; }
