@@ -3,9 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetFlowAnalizer", "NetFlowAnalizer\NetFlowAnalizer.csproj", "{23432CBD-A4AF-C819-C5DB-64C9CCC3556C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetFlowAnalizer", "NetFlowAnalizer\NetFlowAnalizer.csproj", "{23432CBD-A4AF-C819-C5DB-64C9CCC3556C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetFlowAnalizer.Core", "NetFlowAnalizer.Core\NetFlowAnalizer.Core.csproj", "{B579B6CA-BCDE-D267-B9BE-C8B9E40EAD13}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetFlowAnalizer.Core", "NetFlowAnalizer.Core\NetFlowAnalizer.Core.csproj", "{B579B6CA-BCDE-D267-B9BE-C8B9E40EAD13}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NetFlowAnalizer.Infrastructure", "NetFlowAnalizer.Infrastructure\NetFlowAnalizer.Infrastructure.csproj", "{438E4E1C-D6CD-413F-B3F3-1C35622D2924}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{B579B6CA-BCDE-D267-B9BE-C8B9E40EAD13}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B579B6CA-BCDE-D267-B9BE-C8B9E40EAD13}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B579B6CA-BCDE-D267-B9BE-C8B9E40EAD13}.Release|Any CPU.Build.0 = Release|Any CPU
+		{438E4E1C-D6CD-413F-B3F3-1C35622D2924}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{438E4E1C-D6CD-413F-B3F3-1C35622D2924}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{438E4E1C-D6CD-413F-B3F3-1C35622D2924}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{438E4E1C-D6CD-413F-B3F3-1C35622D2924}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
