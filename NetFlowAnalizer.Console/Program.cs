@@ -1,87 +1,142 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using NetFlowAnalizer.Core;
-using NetFlowAnalizer.Core.Models;
-using NetFlowAnalizer.Infrastructure;
+using NetFlowAnalizer.Core.Services;
+using NetFlowAnalizer.Infrastructure.Export;
+using NetFlowAnalizer.Infrastructure.Parsers;
+using NetFlowAnalizer.Infrastructure.Readers;
+using NetFlowAnalizer.Infrastructure.Services;
 
+if (args.Length < 1)
+{
+    Console.WriteLine("NetFlow Analyzer v9");
+    Console.WriteLine();
+    Console.WriteLine("Usage: NetFlowAnalizer.Console <pcapFilePath>");
+    Console.WriteLine();
+    Console.WriteLine("Example:");
+    Console.WriteLine("  NetFlowAnalizer.Console /path/to/netflow_data.pcap");
+    Console.WriteLine();
+    Console.WriteLine("The tool will:");
+    Console.WriteLine("  1. Parse NetFlow v9 packets from the PCAP file");
+    Console.WriteLine("  2. Export results to JSON file (same name as PCAP with .json extension)");
+    return 1;
+}
 
-	using var host = CreateHostBuilder(args).Build();
+string pcapFilePath = args[0];
 
-	var logger = host.Services.GetRequiredService<ILogger<Program>>();
-	logger.LogInformation("NetFlow Analizer starting ...");
+if (!File.Exists(pcapFilePath))
+{
+    Console.WriteLine($"Error: File not found: {pcapFilePath}");
+    return 1;
+}
 
-	var parser = host.Services.GetRequiredService<INetFlowParser>();
-	logger.LogInformation($"Using Parser: v{parser.SupportedVersion}");
+string jsonOutputPath = Path.ChangeExtension(pcapFilePath, ".json");
+
+using var host = CreateHostBuilder(args).Build();
+
+var logger = host.Services.GetRequiredService<ILogger<Program>>();
+logger.LogInformation("=== NetFlow Analyzer v9 ===");
+logger.LogInformation("Input PCAP: {PcapPath}", pcapFilePath);
+logger.LogInformation("Output JSON: {JsonPath}", jsonOutputPath);
+
 try
 {
-	var netflowPacket = new byte[] { 0x00, 0x09, // v9
-		0x00, 0x02, // Count =2
-		0x01, 0x23, 0x45, 0x67, // SystemUpTime = 19088743
-		0x65, 0x40, 0x2F, 0x0A, // UnuxSeconds = 1699147536 (~2023)
-		0x00, 0x00, 0x00, 0x01, // Sequence Number = 1
-		0x00, 0x00, 0x00, 0xAB, // Source Id = 171
+    // Get services
+    var parser = host.Services.GetRequiredService<INetFlowParser>();
+    var pcapReader = host.Services.GetRequiredService<NetFlowPcapReader>();
+    var jsonExporter = host.Services.GetRequiredService<NetFlowJsonExporter>();
 
-		// added mock bytes for immitation FlowSet data
-		0x00, 0x00, 0x00, 0x08, // FlowSet ID = 8 (Template FlowSet)
-		0x00, 0x10, // Length = 16 bytes
-		0x01, 0x02, 0x03, 0x04 // Dummy template data
-	};
+    logger.LogInformation("Using NetFlow Parser v{Version}", parser.SupportedVersion);
 
-    logger.LogInformation("Testing parser with {PacketSize} byte NetFlow packet", netflowPacket.Length);
-	var canParsePacket = parser.CanParse(netflowPacket);
-	logger.LogInformation($"CanParse handle packet: {canParsePacket}");
+    // Read PCAP file
+    logger.LogInformation("Starting PCAP processing...");
+    await pcapReader.ReadAsync(pcapFilePath);
 
-	if (canParsePacket)
-	{
-		var records = await parser.ParseAsync(netflowPacket);
-		var recordList = records.ToList();
+    var allRecords = pcapReader.AllRecords;
+    var headers = pcapReader.GetHeaders().ToList();
+    var templates = pcapReader.GetTemplates().ToList();
+    var dataRecords = pcapReader.GetDataRecords().ToList();
 
-		logger.LogInformation($"Parsed {recordList.Count()}");
+    logger.LogInformation("=== Parsing Results ===");
+    logger.LogInformation("Total records: {Total}", allRecords.Count);
+    logger.LogInformation("  Headers: {Count}", headers.Count);
+    logger.LogInformation("  Templates: {Count}", templates.Count);
+    logger.LogInformation("  Data records (flows): {Count}", dataRecords.Count);
 
-		foreach (var rec in recordList)
-		{
-			logger.LogInformation($"Record: {rec}");
+    if (headers.Any())
+    {
+        logger.LogInformation("");
+        logger.LogInformation("=== Sample Headers ===");
+        foreach (var header in headers.Take(3))
+        {
+            logger.LogInformation("  {Header}", header);
+        }
+    }
 
-			if (rec is NetFlowV9Header header)
-			{
-                logger.LogInformation("  Version: {Version}", header.Version);
-                logger.LogInformation("  Count: {Count}", header.Count);
-                logger.LogInformation("  Timestamp: {Timestamp}", header.Timestamp);
-                logger.LogInformation("  Source ID: {SourceId}", header.SourceId);
-                logger.LogInformation("  Sequence: {Sequence}", header.SequenceNumber);
-                logger.LogInformation("  System Uptime: {Uptime} ms", header.SystemUpTime);
+    if (templates.Any())
+    {
+        logger.LogInformation("");
+        logger.LogInformation("=== Templates ===");
+        foreach (var template in templates)
+        {
+            logger.LogInformation("  Template ID: {TemplateId}, Fields: {FieldCount}, Record Length: {RecordLength} bytes",
+                template.TemplateId, template.Fields.Count, template.RecordLength);
+        }
+    }
+
+    if (dataRecords.Any())
+    {
+        logger.LogInformation("");
+        logger.LogInformation("=== Sample Flow Records ===");
+        foreach (var record in dataRecords.Take(5))
+        {
+            logger.LogInformation("  Flow (Template {TemplateId}):", record.TemplateId);
+            foreach (var kvp in record.Values.Take(8))
+            {
+                logger.LogInformation("    {Key}: {Value}", kvp.Key, kvp.Value);
             }
-		}
-	}
+        }
+    }
 
-	return 0;
+    // Export to JSON
+    logger.LogInformation("");
+    logger.LogInformation("Exporting results to JSON...");
+    await jsonExporter.ExportToJsonAsync(pcapReader.Packets, jsonOutputPath);
+
+    logger.LogInformation("");
+    logger.LogInformation("=== SUCCESS ===");
+    logger.LogInformation("Results saved to: {JsonPath}", jsonOutputPath);
+    logger.LogInformation("You can now open view/index.html and load the JSON file for visualization");
+
+    return 0;
 }
 catch (Exception ex)
 {
-	logger.LogError(ex, "Error testing parser");
-	return 1;
+    logger.LogError(ex, "Error processing NetFlow data");
+    return 1;
 }
 
 static IHostBuilder CreateHostBuilder(string[] args)
 {
-	return Host.CreateDefaultBuilder(args)
-		.ConfigureServices((context, services) =>
-		{
-			// register our services
-			RegisterApplicationServices(services);
-		})
-		.ConfigureLogging((context, logging) =>
-		{
-			// Setting logging
-			logging.ClearProviders();
-			logging.AddConsole();
-			logging.SetMinimumLevel(LogLevel.Information);
-		});
+    return Host.CreateDefaultBuilder(args)
+        .ConfigureServices((context, services) =>
+        {
+            RegisterApplicationServices(services);
+        })
+        .ConfigureLogging((context, logging) =>
+        {
+            logging.ClearProviders();
+            logging.AddConsole();
+            logging.SetMinimumLevel(LogLevel.Information);
+        });
 }
 
 static void RegisterApplicationServices(IServiceCollection services)
 {
-	// Register parser NetFlow v9
-	services.AddSingleton<INetFlowParser, NetFlowV9ParserStub>();
+    // Register NetFlow services
+    services.AddSingleton<ITemplateCache, TemplateCache>();
+    services.AddSingleton<INetFlowParser, NetFlowV9Parser>();
+    services.AddSingleton<NetFlowPcapReader>();
+    services.AddSingleton<NetFlowJsonExporter>();
 }
