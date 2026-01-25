@@ -52,7 +52,8 @@ public class NetFlowPcapReader
         int netflowPackets = 0;
 
         PacketCapture packet;
-        while ((packet = device.GetNextPacket()) != null)
+        GetPacketStatus status;
+        while ((status = device.GetNextPacket(out packet)) == GetPacketStatus.PacketRead)
         {
             cancellationToken.ThrowIfCancellationRequested();
             totalPackets++;
