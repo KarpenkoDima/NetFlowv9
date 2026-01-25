@@ -263,11 +263,8 @@ public class NetFlowV9Parser : INetFlowParser
                     var fieldData = br.ReadBytes(field.Length);
                     var formattedValue = FormatField(field.Type, fieldData);
 
-                    var fieldName = NetFlowFields.FieldNames.TryGetValue(field.Type, out var name)
-                        ? name
-                        : $"Field_{field.Type}";
-
-                    dataRecord.Values[fieldName] = formattedValue;
+                    // Use field type as key (dashboard expects numeric keys like "8", "12")
+                    dataRecord.Values[field.Type.ToString()] = formattedValue;
                 }
 
                 dataRecords.Add(dataRecord);
@@ -290,26 +287,45 @@ public class NetFlowV9Parser : INetFlowParser
     {
         try
         {
-            return fieldType switch
+            switch (fieldType)
             {
-                // Single byte fields
-                4 or 5 or 6 => data.Length == 1 ? data[0].ToString() : $"[Invalid length: {data.Length}]",
+                case 4:  // Protocol (1 byte)
+                case 5:  // TOS (1 byte)
+                case 6:  // TCP Flags (1 byte)
+                    return data.Length == 1 ? data[0].ToString() : $"[Invalid length: {data.Length}]";
 
-                // IP addresses
-                8 or 12 or 15 or 225 or 226 => ByteUtils.ToIpAddress(data),
+                case 8:  // Src IP
+                case 12: // Dst IP
+                case 15: // Next Hop
+                case 225: // Post-NAT Src IP
+                case 226: // Post-NAT Dst IP
+                    return ByteUtils.ToIpAddress(data);
 
-                // Ports
-                7 or 11 or 227 or 228 => ByteUtils.ToUInt16Safe(data).ToString(),
+                case 7:  // Src Port
+                case 11: // Dst Port
+                case 227: // Post-NAT Src Port
+                case 228: // Post-NAT Dst Port
+                    return ByteUtils.ToUInt16Safe(data).ToString();
 
-                // 32-bit integers
-                1 or 2 or 10 or 14 or 34 or 35 => ByteUtils.ToUInt32Safe(data).ToString(),
+                case 1:  // Bytes
+                case 2:  // Packets
+                case 10: // Input IF
+                case 14: // Output IF
+                case 34: // Start Time
+                case 35: // End Time
+                    return ByteUtils.ToUInt32Safe(data).ToString();
 
-                // Unix timestamps (64-bit)
-                80 or 81 => DateTimeOffset.FromUnixTimeMilliseconds((long)ByteUtils.ToUInt64Safe(data)).ToString("yyyy-MM-dd HH:mm:ss"),
+                case 80: // Unix Start
+                case 81: // Unix End
+                    // Flexible handling: template may define 6 or 8 bytes
+                    return data.Length == 8
+                        ? DateTimeOffset.FromUnixTimeMilliseconds((long)ByteUtils.ToUInt64Safe(data)).ToString("yyyy-MM-dd HH:mm:ss")
+                        : BitConverter.ToString(data);
 
-                // Default: hex string
-                _ => BitConverter.ToString(data)
-            };
+                default:
+                    // For all other fields (MAC addresses, SysUptime, etc) - return hex
+                    return BitConverter.ToString(data);
+            }
         }
         catch (Exception ex)
         {
