@@ -102,7 +102,7 @@ try
     // Export to JSON
     logger.LogInformation("");
     logger.LogInformation("Exporting results to JSON...");
-    await jsonExporter.ExportToJsonAsync(allRecords, jsonOutputPath);
+    await jsonExporter.ExportToJsonAsync(pcapReader.Packets, jsonOutputPath);
 
     logger.LogInformation("");
     logger.LogInformation("=== SUCCESS ===");

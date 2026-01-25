@@ -15,6 +15,7 @@ public class NetFlowPcapReader
     private readonly INetFlowParser _parser;
     private readonly ILogger<NetFlowPcapReader> _logger;
     private readonly List<INetFlowRecord> _allRecords = new();
+    private readonly List<NetFlowPacket> _packets = new();
 
     public const int NetFlowPort = 2055;
 
@@ -25,9 +26,14 @@ public class NetFlowPcapReader
     }
 
     /// <summary>
-    /// All parsed NetFlow records
+    /// All parsed NetFlow records (flat list for backward compatibility)
     /// </summary>
     public IReadOnlyList<INetFlowRecord> AllRecords => _allRecords.AsReadOnly();
+
+    /// <summary>
+    /// All parsed NetFlow packets (preserves packet structure)
+    /// </summary>
+    public IReadOnlyList<NetFlowPacket> Packets => _packets.AsReadOnly();
 
     /// <summary>
     /// Read and parse NetFlow packets from PCAP file
@@ -42,6 +48,7 @@ public class NetFlowPcapReader
         _logger.LogInformation("Opening PCAP file: {FilePath}", pcapFilePath);
 
         _allRecords.Clear();
+        _packets.Clear();
 
         using var device = new CaptureFileReaderDevice(pcapFilePath);
         device.Open();
@@ -87,6 +94,19 @@ public class NetFlowPcapReader
                 // Parse the packet
                 var records = await _parser.ParseAsync(payload, cancellationToken);
                 _allRecords.AddRange(records);
+
+                // Build packet structure
+                var packet = new NetFlowPacket();
+                foreach (var record in records)
+                {
+                    if (record is NetFlowV9Header header)
+                        packet.Header = header;
+                    else if (record is TemplateRecord template)
+                        packet.Templates.Add(template);
+                    else if (record is DataRecord dataRecord)
+                        packet.DataRecords.Add(dataRecord);
+                }
+                _packets.Add(packet);
 
                 _logger.LogInformation("Parsed NetFlow packet {Index}, extracted {RecordCount} records",
                     netflowPackets, records.Count());
