@@ -482,3 +482,8 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# classify a project primarily as CSharp, while ignoring JavaScript and HTML files
+*.js linguist-detectable=false
+*.html linguist-detectable=false
+*.cs linguist-detectable=true 
