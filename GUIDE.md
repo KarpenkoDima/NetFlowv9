@@ -2127,23 +2127,27 @@ public async Task<IEnumerable<INetFlowRecord>> ParseAsync(
     byte[] data,
     CancellationToken cancellationToken = default)
 {
-    var records = new List<INetFlowRecord>();
-
-    using var ms = new MemoryStream(data);
-    using var br = new BinaryReader(ms);
-
-    // 1. Parse header
-    var header = ParseHeader(br);
-    records.Add(header);
-
-    // 2. Parse FlowSets
-    while (br.BaseStream.Position < br.BaseStream.Length - 4)
+    // Offload the synchronous work to a background thread
+    return await Task.Run(() => 
     {
-        var flowSetRecords = ParseFlowSet(br, header.SourceId);
-        records.AddRange(flowSetRecords);
-    }
+        var records = new List<INetFlowRecord>();
+        using var ms = new MemoryStream(data);
+        using var br = new BinaryReader(ms);
 
-    return await Task.FromResult(records);
+        var header = ParseHeader(br);
+        records.Add(header);
+
+        while (br.BaseStream.Position < br.BaseStream.Length - 4)
+        {
+            // The token check is perfect here
+            cancellationToken.ThrowIfCancellationRequested(); 
+
+            var flowSetRecords = ParseFlowSet(br, header.SourceId);
+            records.AddRange(flowSetRecords);
+        }
+
+        return (IEnumerable<INetFlowRecord>)records;
+    }, cancellationToken);
 }
 ```
 
