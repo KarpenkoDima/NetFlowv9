@@ -1,36 +1,26 @@
-﻿using NetFlowAnalizer.Core.Models;
+using NetFlowAnalizer.Core.Models;
 
 namespace NetFlowAnalizer.Core;
-/*
- * Interface for parsing Net Flow data
- * 
- */
 
 /// <summary>
-/// Interface for parsing Net Flow data
+/// Interface for parsing NetFlow data.
+/// Synchronous, Span-based — no heap allocations in hot path.
 /// </summary>
 public interface INetFlowParser
 {
     /// <summary>
-    /// Supported version NetFlow protocol
+    /// Supported NetFlow protocol version
     /// </summary>
-    int SupportedVersion { get;  }
+    int SupportedVersion { get; }
 
     /// <summary>
-    /// Verify, Parser can been to parse data
+    /// Check whether this parser can handle the given packet
     /// </summary>
-    /// <param name="data">Data for parsing</param>
-    /// <returns>true, if parser can to parsing data</returns>
     bool CanParse(ReadOnlySpan<byte> data);
 
     /// <summary>
-    /// Async parsing NetFlow data 
+    /// Parse a single NetFlow UDP payload into a <see cref="NetFlowPacket"/>.
+    /// Purely synchronous — no async, no Task, no MemoryStream.
     /// </summary>
-    /// <param name="data">Binary data for parsing</param>
-    /// <param name="cancellationToken">Token for cancelation</param>
-    /// <returns>Collection NetFlow data</returns>
-    Task<IEnumerable<INetFlowRecord>> ParseAsync(
-        ReadOnlyMemory<byte> data,
-        CancellationToken cancellationToken = default);
-
+    NetFlowPacket ParsePacket(ReadOnlySpan<byte> data);
 }

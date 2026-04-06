@@ -1,10 +1,11 @@
 ﻿namespace NetFlowAnalizer.Core.Models;
 
 /// <summary>
-/// base interface for all NetFlow records type
+/// Marker interface for all NetFlow record types
+/// (Header, Template, Data records)
 /// </summary>
 public interface INetFlowRecord
 {
-    ushort Version { get; }
-    DateTime Timestamp { get; }
+    // Marker interface - no members
+    // Allows polymorphic collections of different NetFlow record types
 }
