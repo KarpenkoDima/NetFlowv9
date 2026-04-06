@@ -8,14 +8,14 @@ using SharpPcap.LibPcap;
 namespace NetFlowAnalizer.Infrastructure.Readers;
 
 /// <summary>
-/// Reads NetFlow packets from PCAP files
+/// Streaming PCAP reader. Processes one packet at a time —
+/// never accumulates all records in memory.
+/// Memory usage is O(1) regardless of PCAP file size.
 /// </summary>
-public class NetFlowPcapReader
+public sealed class NetFlowPcapReader
 {
     private readonly INetFlowParser _parser;
     private readonly ILogger<NetFlowPcapReader> _logger;
-    private readonly List<INetFlowRecord> _allRecords = new();
-    private readonly List<NetFlowPacket> _packets = new();
 
     public const int NetFlowPort = 2055;
 
@@ -26,124 +26,82 @@ public class NetFlowPcapReader
     }
 
     /// <summary>
-    /// All parsed NetFlow records (flat list for backward compatibility)
+    /// Stats from the last run
     /// </summary>
-    public IReadOnlyList<INetFlowRecord> AllRecords => _allRecords.AsReadOnly();
+    public int TotalPackets { get; private set; }
+    public int NetFlowPackets { get; private set; }
+    public int TotalTemplates { get; private set; }
+    public int TotalFlows { get; private set; }
 
     /// <summary>
-    /// All parsed NetFlow packets (preserves packet structure)
+    /// Process PCAP file in streaming mode.
+    /// Each parsed NetFlowPacket is passed to <paramref name="onPacket"/> and then discarded.
+    /// No lists, no accumulation — constant memory.
     /// </summary>
-    public IReadOnlyList<NetFlowPacket> Packets => _packets.AsReadOnly();
-
-    /// <summary>
-    /// Read and parse NetFlow packets from PCAP file
-    /// </summary>
-    public async Task ReadAsync(string pcapFilePath, CancellationToken cancellationToken = default)
+    public void Process(
+        string pcapFilePath,
+        Action<NetFlowPacket> onPacket,
+        CancellationToken cancellationToken = default)
     {
         if (!File.Exists(pcapFilePath))
-        {
             throw new FileNotFoundException($"PCAP file not found: {pcapFilePath}");
-        }
 
-        _logger.LogInformation("Opening PCAP file: {FilePath}", pcapFilePath);
+        _logger.LogInformation("Opening PCAP: {FilePath}", pcapFilePath);
 
-        _allRecords.Clear();
-        _packets.Clear();
+        TotalPackets = 0;
+        NetFlowPackets = 0;
+        TotalTemplates = 0;
+        TotalFlows = 0;
 
         using var device = new CaptureFileReaderDevice(pcapFilePath);
         device.Open();
 
-        _logger.LogInformation("PCAP file opened successfully. Starting packet capture...");
-
-        int totalPackets = 0;
-        int netflowPackets = 0;
-
-        PacketCapture packet;
+        PacketCapture capture;
         GetPacketStatus status;
-        while ((status = device.GetNextPacket(out packet)) == GetPacketStatus.PacketRead)
+
+        while ((status = device.GetNextPacket(out capture)) == GetPacketStatus.PacketRead)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            totalPackets++;
+            TotalPackets++;
 
             try
             {
-                var rawPacket = Packet.ParsePacket(packet.GetPacket().LinkLayerType, packet.GetPacket().Data);
+                var rawCapture = capture.GetPacket();
+                var rawPacket = Packet.ParsePacket(rawCapture.LinkLayerType, rawCapture.Data);
                 var udpPacket = rawPacket.Extract<UdpPacket>();
 
-                // Filter only NetFlow packets (UDP port 2055)
-                if (udpPacket == null || udpPacket.DestinationPort != NetFlowPort)
+                if (udpPacket is null || udpPacket.DestinationPort != NetFlowPort)
                     continue;
 
                 var payload = udpPacket.PayloadData;
-                if (payload == null || payload.Length < 20)
-                {
-                    _logger.LogDebug("Skipping packet with insufficient payload length: {Length}", payload?.Length ?? 0);
+                if (payload is null || payload.Length < NetFlowV9Header.HeaderSize)
                     continue;
-                }
 
-                // Check if parser can handle this packet
                 if (!_parser.CanParse(payload))
-                {
-                    _logger.LogDebug("Parser cannot handle this packet (wrong version)");
                     continue;
-                }
 
-                netflowPackets++;
-                _logger.LogDebug("Processing NetFlow packet {Index}", netflowPackets);
+                NetFlowPackets++;
 
-                // Parse the packet
-                var records = await _parser.ParseAsync(payload, cancellationToken);
-                _allRecords.AddRange(records);
+                // Parse on the span — synchronous, no Task overhead
+                var packet = _parser.ParsePacket(payload.AsSpan());
 
-                // Build packet structure
-                var packet = new NetFlowPacket();
-                foreach (var record in records)
-                {
-                    if (record is NetFlowV9Header header)
-                        packet.Header = header;
-                    else if (record is TemplateRecord template)
-                        packet.Templates.Add(template);
-                    else if (record is DataRecord dataRecord)
-                        packet.DataRecords.Add(dataRecord);
-                }
-                _packets.Add(packet);
+                TotalTemplates += packet.Templates.Count;
+                TotalFlows += packet.DataRecords.Count;
 
-                _logger.LogInformation("Parsed NetFlow packet {Index}, extracted {RecordCount} records",
-                    netflowPackets, records.Count());
+                // Hand off to consumer (JSON writer) immediately.
+                // After this call returns, `packet` is eligible for GC.
+                onPacket(packet);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing packet {Index}", totalPackets);
+                _logger.LogError(ex, "Error processing packet #{Index}", TotalPackets);
             }
         }
 
         device.Close();
 
-        _logger.LogInformation("PCAP processing completed. Total packets: {Total}, NetFlow packets: {NetFlow}, Total records: {Records}",
-            totalPackets, netflowPackets, _allRecords.Count);
-    }
-
-    /// <summary>
-    /// Get all headers from parsed records
-    /// </summary>
-    public IEnumerable<NetFlowV9Header> GetHeaders()
-    {
-        return _allRecords.OfType<NetFlowV9Header>();
-    }
-
-    /// <summary>
-    /// Get all template records
-    /// </summary>
-    public IEnumerable<TemplateRecord> GetTemplates()
-    {
-        return _allRecords.OfType<TemplateRecord>();
-    }
-
-    /// <summary>
-    /// Get all data records
-    /// </summary>
-    public IEnumerable<DataRecord> GetDataRecords()
-    {
-        return _allRecords.OfType<DataRecord>();
+        _logger.LogInformation(
+            "PCAP done: {Total} packets, {NetFlow} NetFlow, {Templates} templates, {Flows} flows",
+            TotalPackets, NetFlowPackets, TotalTemplates, TotalFlows);
     }
 }

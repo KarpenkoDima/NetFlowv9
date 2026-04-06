@@ -10,16 +10,14 @@ using NetFlowAnalizer.Infrastructure.Services;
 
 if (args.Length < 1)
 {
-    Console.WriteLine("NetFlow Analyzer v9");
+    Console.WriteLine("NetFlow Analyzer v9 (High-Performance Edition)");
     Console.WriteLine();
     Console.WriteLine("Usage: NetFlowAnalizer.Console <pcapFilePath>");
     Console.WriteLine();
-    Console.WriteLine("Example:");
-    Console.WriteLine("  NetFlowAnalizer.Console /path/to/netflow_data.pcap");
-    Console.WriteLine();
-    Console.WriteLine("The tool will:");
-    Console.WriteLine("  1. Parse NetFlow v9 packets from the PCAP file");
-    Console.WriteLine("  2. Export results to JSON file (same name as PCAP with .json extension)");
+    Console.WriteLine("Features:");
+    Console.WriteLine("  - Zero-copy parsing via Span<byte> + BinaryPrimitives");
+    Console.WriteLine("  - Streaming JSON export via Utf8JsonWriter");
+    Console.WriteLine("  - O(1) memory — handles multi-GB PCAP files");
     return 1;
 }
 
@@ -36,78 +34,44 @@ string jsonOutputPath = Path.ChangeExtension(pcapFilePath, ".json");
 using var host = CreateHostBuilder(args).Build();
 
 var logger = host.Services.GetRequiredService<ILogger<Program>>();
-logger.LogInformation("=== NetFlow Analyzer v9 ===");
+logger.LogInformation("=== NetFlow Analyzer v9 (High-Performance) ===");
 logger.LogInformation("Input PCAP: {PcapPath}", pcapFilePath);
 logger.LogInformation("Output JSON: {JsonPath}", jsonOutputPath);
 
 try
 {
-    // Get services
-    var parser = host.Services.GetRequiredService<INetFlowParser>();
-    var pcapReader = host.Services.GetRequiredService<NetFlowPcapReader>();
-    var jsonExporter = host.Services.GetRequiredService<NetFlowJsonExporter>();
+    var reader = host.Services.GetRequiredService<NetFlowPcapReader>();
+    var exporter = host.Services.GetRequiredService<NetFlowJsonExporter>();
 
-    logger.LogInformation("Using NetFlow Parser v{Version}", parser.SupportedVersion);
+    // --- Streaming pipeline ---
+    //
+    // 1. Open JSON file, write preamble
+    // 2. For each PCAP packet:
+    //      parse(Span) → NetFlowPacket → Utf8JsonWriter → flush → GC
+    // 3. Write templates + close JSON
+    //
+    // Memory usage: ~50 MB regardless of PCAP size.
 
-    // Read PCAP file
-    logger.LogInformation("Starting PCAP processing...");
-    await pcapReader.ReadAsync(pcapFilePath);
+    exporter.BeginExport(jsonOutputPath);
 
-    var allRecords = pcapReader.AllRecords;
-    var headers = pcapReader.GetHeaders().ToList();
-    var templates = pcapReader.GetTemplates().ToList();
-    var dataRecords = pcapReader.GetDataRecords().ToList();
-
-    logger.LogInformation("=== Parsing Results ===");
-    logger.LogInformation("Total records: {Total}", allRecords.Count);
-    logger.LogInformation("  Headers: {Count}", headers.Count);
-    logger.LogInformation("  Templates: {Count}", templates.Count);
-    logger.LogInformation("  Data records (flows): {Count}", dataRecords.Count);
-
-    if (headers.Any())
+    reader.Process(pcapFilePath, packet =>
     {
-        logger.LogInformation("");
-        logger.LogInformation("=== Sample Headers ===");
-        foreach (var header in headers.Take(3))
-        {
-            logger.LogInformation("  {Header}", header);
-        }
-    }
+        exporter.WritePacket(in packet);
+    });
 
-    if (templates.Any())
-    {
-        logger.LogInformation("");
-        logger.LogInformation("=== Templates ===");
-        foreach (var template in templates)
-        {
-            logger.LogInformation("  Template ID: {TemplateId}, Fields: {FieldCount}, Record Length: {RecordLength} bytes",
-                template.TemplateId, template.Fields.Count, template.RecordLength);
-        }
-    }
+    exporter.EndExport();
 
-    if (dataRecords.Any())
-    {
-        logger.LogInformation("");
-        logger.LogInformation("=== Sample Flow Records ===");
-        foreach (var record in dataRecords.Take(5))
-        {
-            logger.LogInformation("  Flow (Template {TemplateId}):", record.TemplateId);
-            foreach (var kvp in record.Values.Take(8))
-            {
-                logger.LogInformation("    {Key}: {Value}", kvp.Key, kvp.Value);
-            }
-        }
-    }
-
-    // Export to JSON
+    // Print summary
     logger.LogInformation("");
-    logger.LogInformation("Exporting results to JSON...");
-    await jsonExporter.ExportToJsonAsync(pcapReader.Packets, jsonOutputPath);
-
+    logger.LogInformation("=== RESULTS ===");
+    logger.LogInformation("Total packets scanned: {Total}", reader.TotalPackets);
+    logger.LogInformation("NetFlow v9 packets:    {NetFlow}", reader.NetFlowPackets);
+    logger.LogInformation("Templates found:       {Templates}", reader.TotalTemplates);
+    logger.LogInformation("Flow records:          {Flows}", reader.TotalFlows);
     logger.LogInformation("");
     logger.LogInformation("=== SUCCESS ===");
     logger.LogInformation("Results saved to: {JsonPath}", jsonOutputPath);
-    logger.LogInformation("You can now open view/index.html and load the JSON file for visualization");
+    logger.LogInformation("Open view/index.html and load the JSON file for visualization");
 
     return 0;
 }
@@ -116,27 +80,27 @@ catch (Exception ex)
     logger.LogError(ex, "Error processing NetFlow data");
     return 1;
 }
+finally
+{
+    // Ensure exporter file handles are released
+    var exporter = host.Services.GetService<NetFlowJsonExporter>();
+    exporter?.Dispose();
+}
 
 static IHostBuilder CreateHostBuilder(string[] args)
 {
     return Host.CreateDefaultBuilder(args)
-        .ConfigureServices((context, services) =>
+        .ConfigureServices((_, services) =>
         {
-            RegisterApplicationServices(services);
+            services.AddSingleton<ITemplateCache, TemplateCache>();
+            services.AddSingleton<INetFlowParser, NetFlowV9Parser>();
+            services.AddSingleton<NetFlowPcapReader>();
+            services.AddSingleton<NetFlowJsonExporter>();
         })
-        .ConfigureLogging((context, logging) =>
+        .ConfigureLogging((_, logging) =>
         {
             logging.ClearProviders();
             logging.AddConsole();
             logging.SetMinimumLevel(LogLevel.Information);
         });
-}
-
-static void RegisterApplicationServices(IServiceCollection services)
-{
-    // Register NetFlow services
-    services.AddSingleton<ITemplateCache, TemplateCache>();
-    services.AddSingleton<INetFlowParser, NetFlowV9Parser>();
-    services.AddSingleton<NetFlowPcapReader>();
-    services.AddSingleton<NetFlowJsonExporter>();
 }

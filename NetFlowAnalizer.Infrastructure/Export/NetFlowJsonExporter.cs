@@ -1,18 +1,28 @@
+using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NetFlowAnalizer.Core.Models;
 using NetFlowAnalizer.Core.Services;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace NetFlowAnalizer.Infrastructure.Export;
 
 /// <summary>
-/// Exports NetFlow data to JSON format compatible with original dashboard
+/// Streaming JSON exporter using Utf8JsonWriter over FileStream.
+/// Writes packets on-the-fly — memory usage is O(1) regardless of data size.
+///
+/// Usage:
+///   exporter.BeginExport("output.json");
+///   reader.Process(pcapPath, packet => exporter.WritePacket(packet));
+///   exporter.EndExport();
 /// </summary>
-public class NetFlowJsonExporter
+public sealed class NetFlowJsonExporter : IDisposable
 {
     private readonly ILogger<NetFlowJsonExporter> _logger;
     private readonly ITemplateCache _templateCache;
+
+    private FileStream? _fileStream;
+    private Utf8JsonWriter? _writer;
+    private bool _firstPacket;
+    private int _packetCount;
 
     public NetFlowJsonExporter(ILogger<NetFlowJsonExporter> logger, ITemplateCache templateCache)
     {
@@ -21,118 +31,197 @@ public class NetFlowJsonExporter
     }
 
     /// <summary>
-    /// Export NetFlow packets to JSON file (MVP-compatible format)
+    /// Open output file and write JSON preamble.
     /// </summary>
-    public async Task ExportToJsonAsync(
-        IEnumerable<NetFlowPacket> packets,
-        string outputPath,
-        CancellationToken cancellationToken = default)
+    public void BeginExport(string outputPath)
     {
-        _logger.LogInformation("Exporting NetFlow data to {OutputPath}", outputPath);
+        _logger.LogInformation("Opening JSON export: {Path}", outputPath);
 
-        var packetList = packets.ToList();
+        _fileStream = new FileStream(outputPath, FileMode.Create, FileAccess.Write,
+            FileShare.None, bufferSize: 65536);
 
-        // Build packets array in MVP format
-        var packetsArray = packetList.Select(p => new
+        _writer = new Utf8JsonWriter(_fileStream, new JsonWriterOptions
         {
-            version = p.Header.Version,
-            count = p.Header.Count,
-            sysUptime = p.Header.SystemUpTime,
-            unixSecs = p.Header.UnixSeconds,
-            sequenceNumber = p.Header.SequenceNumber,
-            sourceId = p.Header.SourceId,
-            flowSets = BuildFlowSets(p).ToArray()
-        }).ToArray();
+            Indented = true
+        });
 
-        // Build templates dictionary in MVP format
-        var allTemplates = _templateCache.GetAllTemplates();
-        var templatesDict = new Dictionary<string, Dictionary<string, object>>();
+        _firstPacket = true;
+        _packetCount = 0;
 
-        foreach (var sourceKvp in allTemplates)
-        {
-            var sourceId = sourceKvp.Key.ToString();
-            templatesDict[sourceId] = new Dictionary<string, object>();
-
-            foreach (var templateKvp in sourceKvp.Value)
-            {
-                var templateId = templateKvp.Key.ToString();
-                var template = templateKvp.Value;
-
-                templatesDict[sourceId][templateId] = new
-                {
-                    TemplateId = template.TemplateId,
-                    Fields = template.Fields.Select(f => new
-                    {
-                        Type = f.Type,
-                        Length = f.Length
-                    }).ToArray()
-                };
-            }
-        }
-
-        // Create final export structure (MVP-compatible)
-        var exportData = new
-        {
-            version = 9,
-            exportTime = DateTime.UtcNow,
-            packets = packetsArray,
-            templates = templatesDict
-        };
-
-        var options = new JsonSerializerOptions
-        {
-            WriteIndented = true,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-        };
-
-        var json = JsonSerializer.Serialize(exportData, options);
-        await File.WriteAllTextAsync(outputPath, json, cancellationToken);
-
-        var totalTemplates = packetList.Sum(p => p.Templates.Count);
-        var totalFlows = packetList.Sum(p => p.DataRecords.Count);
-
-        _logger.LogInformation("Successfully exported {PacketCount} packets, {TemplateCount} templates, {FlowCount} flows to {OutputPath}",
-            packetsArray.Length, totalTemplates, totalFlows, outputPath);
+        // { "version": 9, "exportTime": "...", "packets": [
+        _writer.WriteStartObject();
+        _writer.WriteNumber("version", 9);
+        _writer.WriteString("exportTime", DateTime.UtcNow);
+        _writer.WriteStartArray("packets");
     }
 
     /// <summary>
-    /// Build flowSets array for a packet in MVP format
+    /// Write a single packet to the JSON stream.
+    /// Called from the PCAP reader callback — no buffering.
     /// </summary>
-    private IEnumerable<object> BuildFlowSets(NetFlowPacket packet)
+    public void WritePacket(in NetFlowPacket packet)
     {
-        var flowSets = new List<object>();
+        if (_writer is null)
+            throw new InvalidOperationException("Call BeginExport first");
 
-        // Add template flowset if there are templates (flowSetId = 0)
-        if (packet.Templates.Any())
+        _packetCount++;
+
+        _writer.WriteStartObject();
+
+        // Header fields
+        _writer.WriteNumber("version", packet.Header.Version);
+        _writer.WriteNumber("count", packet.Header.Count);
+        _writer.WriteNumber("sysUptime", packet.Header.SystemUpTime);
+        _writer.WriteNumber("unixSecs", packet.Header.UnixSeconds);
+        _writer.WriteNumber("sequenceNumber", packet.Header.SequenceNumber);
+        _writer.WriteNumber("sourceId", packet.Header.SourceId);
+
+        // FlowSets
+        _writer.WriteStartArray("flowSets");
+        WriteFlowSets(packet);
+        _writer.WriteEndArray(); // flowSets
+
+        _writer.WriteEndObject(); // packet
+
+        // Flush periodically to keep memory bounded
+        if (_packetCount % 100 == 0)
         {
-            flowSets.Add(new
+            _writer.Flush();
+        }
+    }
+
+    /// <summary>
+    /// Write closing JSON: end packets array, write templates, close root object.
+    /// </summary>
+    public void EndExport()
+    {
+        if (_writer is null) return;
+
+        _writer.WriteEndArray(); // packets
+
+        // Write templates from cache
+        WriteTemplatesFromCache();
+
+        _writer.WriteEndObject(); // root
+        _writer.Flush();
+
+        _logger.LogInformation(
+            "JSON export complete: {PacketCount} packets written", _packetCount);
+    }
+
+    private void WriteFlowSets(in NetFlowPacket packet)
+    {
+        // Template flowset (flowSetId = 0)
+        if (packet.Templates.Count > 0)
+        {
+            _writer.WriteStartObject();
+            _writer.WriteNumber("flowSetId", 0);
+
+            var totalLength = 0;
+            foreach (var t in packet.Templates)
+                totalLength += 4 + 4 + t.Fields.Count * 4;
+            _writer.WriteNumber("length", totalLength);
+
+            _writer.WriteStartArray("templates");
+            foreach (var template in packet.Templates)
             {
-                flowSetId = 0,
-                length = packet.Templates.Sum(t => 4 + 4 + t.Fields.Count * 4),
-                templates = packet.Templates.Select(t => new
+                _writer.WriteStartObject();
+                _writer.WriteNumber("templateId", template.TemplateId);
+
+                _writer.WriteStartArray("fields");
+                foreach (var field in template.Fields)
                 {
-                    templateId = t.TemplateId,
-                    fields = t.Fields.Select(f => new
-                    {
-                        type = f.Type,
-                        length = f.Length
-                    }).ToArray()
-                }).ToArray()
-            });
+                    _writer.WriteStartObject();
+                    _writer.WriteNumber("type", field.Type);
+                    _writer.WriteNumber("length", field.Length);
+                    _writer.WriteEndObject();
+                }
+                _writer.WriteEndArray(); // fields
+
+                _writer.WriteEndObject(); // template
+            }
+            _writer.WriteEndArray(); // templates
+
+            _writer.WriteEndObject(); // template flowset
         }
 
-        // Add data flowsets grouped by template ID
-        var dataGroups = packet.DataRecords.GroupBy(d => d.TemplateId);
-        foreach (var group in dataGroups)
+        // Data flowsets grouped by template ID
+        var groupStart = 0;
+        while (groupStart < packet.DataRecords.Count)
         {
-            flowSets.Add(new
+            var templateId = packet.DataRecords[groupStart].TemplateId;
+            var groupEnd = groupStart + 1;
+
+            while (groupEnd < packet.DataRecords.Count
+                && packet.DataRecords[groupEnd].TemplateId == templateId)
             {
-                flowSetId = group.Key,
-                length = group.Sum(d => d.Values.Count * 4), // approximate
-                records = group.Select(d => d.Values).ToArray()
-            });
+                groupEnd++;
+            }
+
+            _writer.WriteStartObject();
+            _writer.WriteNumber("flowSetId", templateId);
+
+            // Approximate length
+            var approxLength = 0;
+            for (var i = groupStart; i < groupEnd; i++)
+                approxLength += packet.DataRecords[i].Values.Count * 4;
+            _writer.WriteNumber("length", approxLength);
+
+            _writer.WriteStartArray("records");
+            for (var i = groupStart; i < groupEnd; i++)
+            {
+                _writer.WriteStartObject();
+                foreach (var kvp in packet.DataRecords[i].Values)
+                {
+                    _writer.WriteString(kvp.Key, kvp.Value?.ToString() ?? string.Empty);
+                }
+                _writer.WriteEndObject();
+            }
+            _writer.WriteEndArray(); // records
+
+            _writer.WriteEndObject(); // data flowset
+
+            groupStart = groupEnd;
+        }
+    }
+
+    private void WriteTemplatesFromCache()
+    {
+        var allTemplates = _templateCache.GetAllTemplates();
+
+        _writer!.WriteStartObject("templates");
+
+        foreach (var (sourceId, templates) in allTemplates)
+        {
+            _writer.WriteStartObject(sourceId.ToString());
+
+            foreach (var (templateId, template) in templates)
+            {
+                _writer.WriteStartObject(templateId.ToString());
+                _writer.WriteNumber("TemplateId", template.TemplateId);
+
+                _writer.WriteStartArray("Fields");
+                foreach (var field in template.Fields)
+                {
+                    _writer.WriteStartObject();
+                    _writer.WriteNumber("Type", field.Type);
+                    _writer.WriteNumber("Length", field.Length);
+                    _writer.WriteEndObject();
+                }
+                _writer.WriteEndArray(); // Fields
+
+                _writer.WriteEndObject(); // template entry
+            }
+
+            _writer.WriteEndObject(); // source entry
         }
 
-        return flowSets;
+        _writer.WriteEndObject(); // templates
+    }
+
+    public void Dispose()
+    {
+        _writer?.Dispose();
+        _fileStream?.Dispose();
     }
 }
