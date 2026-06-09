@@ -1,0 +1,132 @@
+{
+  "NetFlowAnalizer.Console/NetFlowAnalizer.Console.csproj": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "9ddb550e34558d416ce658edee5590ce",
+    "semantic_hash": "9ddb550e34558d416ce658edee5590ce"
+  },
+  "NetFlowAnalizer.Console/Program.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "233b1f6ea5c61c14a04cfdebc61a0fa5",
+    "semantic_hash": "233b1f6ea5c61c14a04cfdebc61a0fa5"
+  },
+  "NetFlowAnalizer.Core/Common/Result.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "07f108178828f3bd2764dc1a2e24b582",
+    "semantic_hash": "07f108178828f3bd2764dc1a2e24b582"
+  },
+  "NetFlowAnalizer.Core/Models/DataRecord.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "86ac799cbb0d3576cd55b2348e42b97f",
+    "semantic_hash": "86ac799cbb0d3576cd55b2348e42b97f"
+  },
+  "NetFlowAnalizer.Core/Models/FlowSetHeader.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "d10bccf84eb29045ba836375181c071a",
+    "semantic_hash": "d10bccf84eb29045ba836375181c071a"
+  },
+  "NetFlowAnalizer.Core/Models/INetFlowRecord.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "519caf56148919d3d9e7e3e8cd94c406",
+    "semantic_hash": "519caf56148919d3d9e7e3e8cd94c406"
+  },
+  "NetFlowAnalizer.Core/Models/NetFlowPacket.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "b0426c10a2e5a41a2c4978aa71efdd1f",
+    "semantic_hash": "b0426c10a2e5a41a2c4978aa71efdd1f"
+  },
+  "NetFlowAnalizer.Core/Models/NetFlowV9Header.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "be5710637799c10857072a38350526ba",
+    "semantic_hash": "be5710637799c10857072a38350526ba"
+  },
+  "NetFlowAnalizer.Core/Models/ParsedFlowSet.cs": {
+    "mtime": 1781022666.290747,
+    "ast_hash": "de7f2e265a7735a57ebc153c38a23bf3",
+    "semantic_hash": "de7f2e265a7735a57ebc153c38a23bf3"
+  },
+  "NetFlowAnalizer.Core/Models/TemplateField.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "05a739c2d283916fce272b3ddd8b76dc",
+    "semantic_hash": "05a739c2d283916fce272b3ddd8b76dc"
+  },
+  "NetFlowAnalizer.Core/Models/TemplateRecord.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "5ef37de7055e7327e64c667c59c7cca0",
+    "semantic_hash": "5ef37de7055e7327e64c667c59c7cca0"
+  },
+  "NetFlowAnalizer.Core/NetFlowAnalizer.Core.csproj": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "978e8627e711f3ee3ec8e9b73c645c97",
+    "semantic_hash": "978e8627e711f3ee3ec8e9b73c645c97"
+  },
+  "NetFlowAnalizer.Core/Services/INetFlowParser.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "1fe601118ac64f0f2f11a8ca26f95e40",
+    "semantic_hash": "1fe601118ac64f0f2f11a8ca26f95e40"
+  },
+  "NetFlowAnalizer.Core/Services/INetFlowRepository.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "8eb74ea67fed0882152bf25235597c61",
+    "semantic_hash": "8eb74ea67fed0882152bf25235597c61"
+  },
+  "NetFlowAnalizer.Core/Services/ITemplateCache.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "1d5c512f0da6c2a05be43ffb06816119",
+    "semantic_hash": "1d5c512f0da6c2a05be43ffb06816119"
+  },
+  "NetFlowAnalizer.Infrastructure/Common/NetFlowFields.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "3abf8b9d259e8f587aa6a43262c48744",
+    "semantic_hash": "3abf8b9d259e8f587aa6a43262c48744"
+  },
+  "NetFlowAnalizer.Infrastructure/Export/NetFlowJsonExporter.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "d63a4f31d2c3607fd9147907fc655551",
+    "semantic_hash": "d63a4f31d2c3607fd9147907fc655551"
+  },
+  "NetFlowAnalizer.Infrastructure/NetFlowAnalizer.Infrastructure.csproj": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "b6376898cc681d4e40e7683e3d7e06f2",
+    "semantic_hash": "b6376898cc681d4e40e7683e3d7e06f2"
+  },
+  "NetFlowAnalizer.Infrastructure/Parsers/NetFlowV9Parser.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "1f1c8be62e8bc70d2305e9e5b6020572",
+    "semantic_hash": "1f1c8be62e8bc70d2305e9e5b6020572"
+  },
+  "NetFlowAnalizer.Infrastructure/Readers/NetFlowPcapReader.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "649ca07be42408f8b3ebc053e3ddd203",
+    "semantic_hash": "649ca07be42408f8b3ebc053e3ddd203"
+  },
+  "NetFlowAnalizer.Infrastructure/Services/TemplateCache.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "5dce10f23472b2d66f85c3a09cf136fc",
+    "semantic_hash": "5dce10f23472b2d66f85c3a09cf136fc"
+  },
+  "NetFlowAnalizer.sln": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "afedea12ce6d0f08707ee1dfaea9470b",
+    "semantic_hash": "afedea12ce6d0f08707ee1dfaea9470b"
+  },
+  "NetFlowAnalizer/NetFlowAnalizer.csproj": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "6163fc9009e516dfc507a6b7c4e1e2b4",
+    "semantic_hash": "6163fc9009e516dfc507a6b7c4e1e2b4"
+  },
+  "NetFlowAnalizer/Program.cs": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "a79411dec299e12dd96510adab74a944",
+    "semantic_hash": "a79411dec299e12dd96510adab74a944"
+  },
+  "NetFlowAnalizer/pcapfiles/netflow_data.json": {
+    "mtime": 1781022666.3064125,
+    "ast_hash": "c4128d9fc4f8a82fcd0267ff4600d0a6",
+    "semantic_hash": "c4128d9fc4f8a82fcd0267ff4600d0a6"
+  },
+  "NetFlowAnalizer/view/app.js": {
+    "mtime": 1781022666.3221242,
+    "ast_hash": "fe4a13c6e713ff25f63dc9e11d4786f3",
+    "semantic_hash": "fe4a13c6e713ff25f63dc9e11d4786f3"
+  }
+}

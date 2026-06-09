@@ -1,0 +1,1 @@
+{"nodes": [{"id": "view_dashboard", "label": "NetFlow Dashboard", "file_type": "code", "source_file": "NetFlowAnalizer/view/index.html"}], "edges": [{"source": "view_dashboard", "target": "infra_netflowjsonexporter", "relation": "references", "confidence": "INFERRED", "confidence_score": 0.9, "source_file": "NetFlowAnalizer/view/index.html"}], "hyperedges": []}

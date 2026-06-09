@@ -1,0 +1,353 @@
+{
+  "communities": {
+    "0": [
+      "binaryreader",
+      "inetflowparser",
+      "models_flowsetheader",
+      "models_templatefield",
+      "netflowanalizer_program",
+      "netflowanalizer_program_capturedpacket",
+      "netflowanalizer_program_capturesummary",
+      "netflowanalizer_program_capturesummary_addpacket",
+      "netflowanalizer_program_cs_dictionary",
+      "netflowanalizer_program_cs_list",
+      "netflowanalizer_program_cs_task",
+      "netflowanalizer_program_datarecord",
+      "netflowanalizer_program_fieldinfo",
+      "netflowanalizer_program_netflowfields",
+      "netflowanalizer_program_netflowjsonexporter",
+      "netflowanalizer_program_netflowjsonexporter_convertdatarecord",
+      "netflowanalizer_program_netflowpacket",
+      "netflowanalizer_program_netflowparser_parseflowsetheader",
+      "netflowanalizer_program_netflowparser_parseheader",
+      "netflowanalizer_program_netflowparser_parsetemplateflowset",
+      "netflowanalizer_program_netflowparser_readuint16bigendian",
+      "netflowanalizer_program_netflowpcapreader",
+      "netflowanalizer_program_netflowpcapreader_device_onpacketarrival",
+      "netflowanalizer_program_netflowpcapreader_exporttojson",
+      "netflowanalizer_program_netflowpcapreader_parsedataflowset",
+      "netflowanalizer_program_netflowpcapreader_read",
+      "netflowanalizer_program_parsedflowset",
+      "netflowanalizer_program_program",
+      "netflowanalizer_program_program_main",
+      "netflowanalizer_program_templatecache",
+      "netflowanalizer_program_templatecache_addtemplate",
+      "netflowanalizer_program_templatecache_getalltemplates",
+      "netflowanalizer_program_templatecache_gettemplate",
+      "netflowanalizer_program_templateinfo",
+      "netflowanalizer_program_templaterecord",
+      "packetcapture"
+    ],
+    "1": [
+      "core_result",
+      "datarecord",
+      "inetflowrecord",
+      "infra_netflowv9parser",
+      "methodimpl",
+      "models_inetflowrecord_inetflowrecord",
+      "models_netflowv9header_frombytes",
+      "models_netflowv9header_tostring",
+      "models_templaterecord",
+      "netflowanalizer_core_models_netflowv9header_cs_readonlyspan",
+      "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_ilogger",
+      "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_itemplatecache",
+      "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_list",
+      "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_netflowpacket",
+      "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_readonlyspan",
+      "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_templaterecord",
+      "netflowv9header",
+      "parsers_netflowv9parser_netflowv9parser_canparse",
+      "parsers_netflowv9parser_netflowv9parser_formatfield",
+      "parsers_netflowv9parser_netflowv9parser_parsedataflowset",
+      "parsers_netflowv9parser_netflowv9parser_parsepacket",
+      "parsers_netflowv9parser_netflowv9parser_parsetemplateflowset"
+    ],
+    "2": [
+      "view_app",
+      "view_app_allflowrecords",
+      "view_app_charts",
+      "view_app_createcharts",
+      "view_app_createipchart",
+      "view_app_createportchart",
+      "view_app_createprotocolchart",
+      "view_app_createtablecell",
+      "view_app_createtimechart",
+      "view_app_displaytemplates",
+      "view_app_extractflowrecords",
+      "view_app_formatbytes",
+      "view_app_generatecolors",
+      "view_app_getfieldname",
+      "view_app_getprotocolname",
+      "view_app_getwellknownport",
+      "view_app_handlefileupload",
+      "view_app_populateflowstable",
+      "view_app_processnetflowdata",
+      "view_app_setuppagination",
+      "view_app_setuptabs",
+      "view_app_updatesummarystats"
+    ],
+    "3": [
+      "netflowanalizer",
+      "netflowanalizer_console_netflowanalizer_console",
+      "netflowanalizer_console_netflowanalizer_console_csproj_framework_net8_0",
+      "netflowanalizer_console_netflowanalizer_console_csproj_sdk_microsoft_net_sdk",
+      "netflowanalizer_core_netflowanalizer_core_csproj_framework_net8_0",
+      "netflowanalizer_core_netflowanalizer_core_csproj_sdk_microsoft_net_sdk",
+      "netflowanalizer_infrastructure_netflowanalizer_infrastructure",
+      "netflowanalizer_infrastructure_netflowanalizer_infrastructure_csproj_framework_net8_0",
+      "netflowanalizer_infrastructure_netflowanalizer_infrastructure_csproj_nuget_sharppcap",
+      "netflowanalizer_infrastructure_netflowanalizer_infrastructure_csproj_sdk_microsoft_net_sdk",
+      "netflowanalizer_netflowanalizer",
+      "netflowanalizer_netflowanalizer_csproj_framework_net8_0",
+      "netflowanalizer_netflowanalizer_csproj_nuget_packetdotnet",
+      "netflowanalizer_netflowanalizer_csproj_nuget_sharppcap",
+      "netflowanalizer_netflowanalizer_csproj_sdk_microsoft_net_sdk",
+      "nuget_microsoft_extensions_dependencyinjection",
+      "nuget_microsoft_extensions_hosting",
+      "nuget_microsoft_extensions_logging",
+      "nuget_microsoft_identitymodel_logging"
+    ],
+    "4": [
+      "bool",
+      "export_netflowjsonexporter_netflowjsonexporter_beginexport",
+      "export_netflowjsonexporter_netflowjsonexporter_dispose",
+      "export_netflowjsonexporter_netflowjsonexporter_endexport",
+      "export_netflowjsonexporter_netflowjsonexporter_writeflowsets",
+      "export_netflowjsonexporter_netflowjsonexporter_writepacket",
+      "export_netflowjsonexporter_netflowjsonexporter_writetemplatesfromcache",
+      "filestream",
+      "idisposable",
+      "infra_netflowjsonexporter",
+      "netflowanalizer_infrastructure_export_netflowjsonexporter_cs_ilogger",
+      "netflowanalizer_infrastructure_export_netflowjsonexporter_cs_int",
+      "netflowanalizer_infrastructure_export_netflowjsonexporter_cs_itemplatecache",
+      "netflowanalizer_infrastructure_export_netflowjsonexporter_cs_netflowpacket",
+      "utf8jsonwriter",
+      "view_dashboard"
+    ],
+    "5": [
+      "itemplatecache",
+      "netflowanalizer_core_services_itemplatecache_cs_dictionary",
+      "netflowanalizer_core_services_itemplatecache_cs_templaterecord",
+      "netflowanalizer_infrastructure_services_templatecache_cs_dictionary",
+      "netflowanalizer_infrastructure_services_templatecache_cs_templaterecord",
+      "object",
+      "services_itemplatecache_itemplatecache_addtemplate",
+      "services_itemplatecache_itemplatecache_clear",
+      "services_itemplatecache_itemplatecache_getalltemplates",
+      "services_itemplatecache_itemplatecache_gettemplate",
+      "services_templatecache_templatecache_addtemplate",
+      "services_templatecache_templatecache_clear",
+      "services_templatecache_templatecache_getalltemplates",
+      "services_templatecache_templatecache_gettemplate"
+    ],
+    "6": [
+      "action",
+      "console_program",
+      "ext_packetdotnet",
+      "ext_sharppcap",
+      "infra_netflowpcapreader",
+      "netflowanalizer_infrastructure_readers_netflowpcapreader_cs_cancellationtoken",
+      "netflowanalizer_infrastructure_readers_netflowpcapreader_cs_ilogger",
+      "netflowanalizer_infrastructure_readers_netflowpcapreader_cs_inetflowparser",
+      "netflowanalizer_infrastructure_readers_netflowpcapreader_cs_int",
+      "netflowanalizer_infrastructure_readers_netflowpcapreader_cs_netflowpacket",
+      "readers_netflowpcapreader_netflowpcapreader_process"
+    ],
+    "7": [
+      "pcapfiles_netflow_data",
+      "pcapfiles_netflow_data_0_256",
+      "pcapfiles_netflow_data_0_257",
+      "pcapfiles_netflow_data_256_fields",
+      "pcapfiles_netflow_data_256_templateid",
+      "pcapfiles_netflow_data_exporttime",
+      "pcapfiles_netflow_data_packets",
+      "pcapfiles_netflow_data_templates",
+      "pcapfiles_netflow_data_templates_0",
+      "pcapfiles_netflow_data_version"
+    ],
+    "8": [
+      "core_inetflowrepository",
+      "datetime",
+      "ienumerable",
+      "netflowanalizer_core_services_inetflowrepository_cs_cancellationtoken",
+      "netflowanalizer_core_services_inetflowrepository_cs_inetflowrecord",
+      "netflowanalizer_core_services_inetflowrepository_cs_task",
+      "services_inetflowrepository_inetflowrepository_getrecordsbytimerangeasync",
+      "services_inetflowrepository_inetflowrepository_gettotalrecordscountasync",
+      "services_inetflowrepository_inetflowrepository_saverecordasync"
+    ],
+    "9": [
+      "netflowanalizer_program_byteutils",
+      "netflowanalizer_program_byteutils_toipaddress",
+      "netflowanalizer_program_byteutils_tolittleendian",
+      "netflowanalizer_program_byteutils_touint16safe",
+      "netflowanalizer_program_byteutils_touint32safe",
+      "netflowanalizer_program_byteutils_touint64safe",
+      "netflowanalizer_program_netflowpcapreader_formatfield"
+    ],
+    "10": [
+      "common_result",
+      "common_result_failure",
+      "common_result_success",
+      "result",
+      "t"
+    ],
+    "11": [
+      "netflowanalizer_core_services_inetflowparser_cs_netflowpacket",
+      "netflowanalizer_core_services_inetflowparser_cs_readonlyspan",
+      "services_inetflowparser_inetflowparser_canparse",
+      "services_inetflowparser_inetflowparser_parsepacket"
+    ],
+    "12": [
+      "guide_netflow_v9",
+      "guide_rfc3954",
+      "readme_netflow_analyzer"
+    ],
+    "13": [
+      "common_netflowfields",
+      "netflowanalizer_infrastructure_common_netflowfields_cs_dictionary"
+    ],
+    "14": [
+      "models_netflowpacket"
+    ],
+    "15": [
+      "models_parsedflowset"
+    ],
+    "16": [
+      "netflowanalizer_console_program"
+    ]
+  },
+  "cohesion": {
+    "0": 0.10634920634920635,
+    "1": 0.12987012987012986,
+    "2": 0.1645021645021645,
+    "3": 0.12280701754385964,
+    "4": 0.15,
+    "5": 0.1978021978021978,
+    "6": 0.18181818181818182,
+    "7": 0.24444444444444444,
+    "8": 0.3888888888888889,
+    "9": 0.5714285714285714,
+    "10": 0.6,
+    "11": 0.5,
+    "12": 0.6666666666666666,
+    "13": 1.0,
+    "14": 1.0,
+    "15": 1.0,
+    "16": 1.0
+  },
+  "gods": [
+    {
+      "id": "infra_netflowjsonexporter",
+      "label": "NetFlowJsonExporter",
+      "degree": 14
+    },
+    {
+      "id": "infra_netflowv9parser",
+      "label": "NetFlowV9Parser",
+      "degree": 11
+    },
+    {
+      "id": "view_app_createcharts",
+      "label": "createCharts()",
+      "degree": 7
+    },
+    {
+      "id": "infra_netflowpcapreader",
+      "label": "NetFlowPcapReader",
+      "degree": 7
+    },
+    {
+      "id": "netflowanalizer_program_netflowpcapreader",
+      "label": "NetFlowPcapReader",
+      "degree": 6
+    },
+    {
+      "id": "netflowanalizer_program_byteutils",
+      "label": "ByteUtils",
+      "degree": 6
+    },
+    {
+      "id": "view_app_processnetflowdata",
+      "label": "processNetFlowData()",
+      "degree": 6
+    },
+    {
+      "id": "netflowanalizer_infrastructure_parsers_netflowv9parser_cs_readonlyspan",
+      "label": "ReadOnlySpan",
+      "degree": 5
+    },
+    {
+      "id": "netflowanalizer_program_templaterecord",
+      "label": "TemplateRecord",
+      "degree": 5
+    },
+    {
+      "id": "netflowanalizer_program_templatecache",
+      "label": "TemplateCache",
+      "degree": 5
+    }
+  ],
+  "surprises": [
+    {
+      "source": "NetFlow Dashboard",
+      "target": "NetFlowJsonExporter",
+      "source_files": [
+        "NetFlowAnalizer/view/index.html",
+        "NetFlowAnalizer.Infrastructure/Export/NetFlowJsonExporter.cs"
+      ],
+      "confidence": "INFERRED",
+      "relation": "references",
+      "why": "inferred connection - not explicitly stated in source; crosses file types (code \u2194 doc); connects across different repos/directories; peripheral node `NetFlow Dashboard` unexpectedly reaches hub `NetFlowJsonExporter`"
+    },
+    {
+      "source": "NetFlowPcapReader",
+      "target": "PacketDotNet",
+      "source_files": [
+        "NetFlowAnalizer.Infrastructure/Readers/NetFlowPcapReader.cs",
+        "README.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "crosses file types (code \u2194 doc); connects across different repos/directories; peripheral node `PacketDotNet` unexpectedly reaches hub `NetFlowPcapReader`"
+    },
+    {
+      "source": "NetFlowPcapReader",
+      "target": "SharpPcap",
+      "source_files": [
+        "NetFlowAnalizer.Infrastructure/Readers/NetFlowPcapReader.cs",
+        "README.md"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "crosses file types (code \u2194 doc); connects across different repos/directories; peripheral node `SharpPcap` unexpectedly reaches hub `NetFlowPcapReader`"
+    },
+    {
+      "source": "CLI Application",
+      "target": "NetFlowV9Parser",
+      "source_files": [
+        "NetFlowAnalizer.Console/Program.cs",
+        "NetFlowAnalizer.Infrastructure/Parsers/NetFlowV9Parser.cs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "calls",
+      "why": "connects across different repos/directories; bridges separate communities; peripheral node `CLI Application` unexpectedly reaches hub `NetFlowV9Parser`"
+    },
+    {
+      "source": "NetFlowV9Parser",
+      "target": "Result<T>",
+      "source_files": [
+        "NetFlowAnalizer.Infrastructure/Parsers/NetFlowV9Parser.cs",
+        "NetFlowAnalizer.Core/Common/Result.cs"
+      ],
+      "confidence": "EXTRACTED",
+      "relation": "references",
+      "why": "connects across different repos/directories; peripheral node `Result<T>` unexpectedly reaches hub `NetFlowV9Parser`"
+    }
+  ],
+  "tokens": {
+    "input": 22999,
+    "output": 1921
+  }
+}
