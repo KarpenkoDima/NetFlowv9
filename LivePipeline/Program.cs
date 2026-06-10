@@ -1,5 +1,8 @@
+using NetFlowAnalizer.Infrastructure.Services;
+using NetFlowAnalizer.Core.Services;
 using NetFlowAnalizer.LivePipeline.Aggregation;
 using NetFlowAnalizer.LivePipeline.Models;
+using NetFlowAnalizer.LivePipeline.Parsers;
 using NetFlowAnalizer.LivePipeline.Pipeline;
 using NetFlowAnalizer.LivePipeline.WebSocket;
 
@@ -54,7 +57,16 @@ builder.Services
     .ValidateDataAnnotations()
     .ValidateOnStart();
 
-// ── 2. Инфраструктура каналов ─────────────────────────────────────────────
+// ── 2. Парсер и кэш шаблонов ─────────────────────────────────────────────
+//
+// TemplateCache — потокобезопасный (lock внутри) singleton: все N воркеров
+// пишут/читают шаблоны через один экземпляр.
+// LiveNetFlowV9Parser — stateless (кэш инжектируется), singleton.
+
+builder.Services.AddSingleton<ITemplateCache, TemplateCache>();
+builder.Services.AddSingleton<LiveNetFlowV9Parser>();
+
+// ── 4. Инфраструктура каналов ─────────────────────────────────────────────
 //
 // PipelineChannels — singleton, создаётся один раз при старте.
 // Содержит оба Bounded Channel с настроенными BoundedChannelOptions.
@@ -62,7 +74,7 @@ builder.Services
 
 builder.Services.AddSingleton<PipelineChannels>();
 
-// ── 3. WebSocket-хаб ─────────────────────────────────────────────────────
+// ── 5. WebSocket-хаб ─────────────────────────────────────────────────────
 //
 // SimpleMetricsWebSocketHub хранит список подключённых клиентов.
 // Aggregator инжектирует IMetricsWebSocketHub и не знает о конкретной реализации.
@@ -90,6 +102,10 @@ var app = builder.Build();
 //
 // Должен идти ДО UseRouting / MapControllers.
 // KeepAliveInterval — пинг для детектирования разрывов.
+
+// ── 5b. Статические файлы (live-дашборд) ──────────────────────────────────
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.UseWebSockets(new WebSocketOptions
 {
