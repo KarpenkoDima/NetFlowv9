@@ -38,6 +38,18 @@ public sealed class PipelineChannels
     /// </summary>
     public Channel<InboundFlowRecord> ParsedRecords { get; }
 
+    // ── Channel 3 ────────────────────────────────────────────────────────────
+    /// <summary>
+    /// Flow-записи для персиста в ClickHouse: NetFlowMetricAggregator → NetFlowClickHouseWriter.
+    ///
+    /// SingleWriter=true   — только Aggregator пишет (fan-out из AccumulateLoop).
+    /// SingleReader=true   — только NetFlowClickHouseWriter читает.
+    /// FullMode=DropWrite  — best-effort: персист НИКОГДА не блокирует live-метрики.
+    ///                       При переполнении новые записи отбрасываются молча
+    ///                       (счётчик потерь ведёт NetFlowClickHouseWriter).
+    /// </summary>
+    public Channel<InboundFlowRecord> RawFlowsForPersistence { get; }
+
     public PipelineChannels(IOptions<PipelineOptions> options)
     {
         var opts = options.Value;
@@ -56,6 +68,15 @@ public sealed class PipelineChannels
             {
                 FullMode                      = BoundedChannelFullMode.Wait,
                 SingleWriter                  = false,
+                SingleReader                  = true,
+                AllowSynchronousContinuations = false,
+            });
+
+        RawFlowsForPersistence = Channel.CreateBounded<InboundFlowRecord>(
+            new BoundedChannelOptions(opts.Channel3Capacity)
+            {
+                FullMode                      = BoundedChannelFullMode.DropWrite,
+                SingleWriter                  = true,
                 SingleReader                  = true,
                 AllowSynchronousContinuations = false,
             });
