@@ -3,6 +3,7 @@ using NetFlowAnalizer.Core.Services;
 using NetFlowAnalizer.LivePipeline.Aggregation;
 using NetFlowAnalizer.LivePipeline.Models;
 using NetFlowAnalizer.LivePipeline.Parsers;
+using NetFlowAnalizer.LivePipeline.Persistence;
 using NetFlowAnalizer.LivePipeline.Pipeline;
 using NetFlowAnalizer.LivePipeline.WebSocket;
 
@@ -65,6 +66,23 @@ builder.Services
 
 builder.Services.AddSingleton<ITemplateCache, TemplateCache>();
 builder.Services.AddSingleton<LiveNetFlowV9Parser>();
+
+// ── 2b. ClickHouse-персистентность ────────────────────────────────────────
+//
+// ClickHouseOptions — конфигурация подключения и батчинга (appsettings.json,
+// секция "ClickHouse"). ClickHouseConnectionFactory создаёт по соединению на
+// каждый flush (ClickHouseConnection не потокобезопасен для конкуррентного
+// использования). NetFlowClickHouseWriter — четвёртый BackgroundService,
+// best-effort consumer Channel 3.
+
+builder.Services
+    .AddOptions<ClickHouseOptions>()
+    .Bind(builder.Configuration.GetSection(ClickHouseOptions.Section))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddSingleton<IClickHouseConnectionFactory, ClickHouseConnectionFactory>();
+builder.Services.AddHostedService<NetFlowClickHouseWriter>();
 
 // ── 4. Инфраструктура каналов ─────────────────────────────────────────────
 //
