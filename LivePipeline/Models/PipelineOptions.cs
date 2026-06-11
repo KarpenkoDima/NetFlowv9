@@ -34,6 +34,13 @@ public sealed class PipelineOptions
     /// </summary>
     public int  ParsedChannelCapacity { get; set; } = 16_384;
 
+    // ── Channel 3: Persistence (Aggregator → ClickHouse Writer) ─────────────
+    /// <summary>
+    /// Ёмкость канала для записей, идущих на персист в ClickHouse.
+    /// FullMode=DropWrite — персист best-effort, не блокирует live-метрики.
+    /// </summary>
+    public int  Channel3Capacity { get; set; } = 100_000;
+
     // ── Worker Pool ───────────────────────────────────────────────────────────
     /// <summary>
     /// Количество воркеров-парсеров. По умолчанию — число логических ядер.
