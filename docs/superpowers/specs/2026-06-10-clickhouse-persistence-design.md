@@ -111,14 +111,14 @@ WebSocket). Two tables in ClickHouse:
 ```sql
 CREATE TABLE flows_raw
 (
-    Timestamp DateTime,
-    SrcIp     UInt32,
-    DstIp     UInt32,
-    SrcPort   UInt16,
-    DstPort   UInt16,
-    Protocol  UInt8,
-    Bytes     UInt64,
-    Packets   UInt64
+    Timestamp DateTime CODEC(DoubleDelta, ZSTD(1)),
+    SrcIp     UInt32   CODEC(ZSTD(1)),
+    DstIp     UInt32   CODEC(ZSTD(1)),
+    SrcPort   UInt16   CODEC(ZSTD(1)),
+    DstPort   UInt16   CODEC(ZSTD(1)),
+    Protocol  UInt8    CODEC(ZSTD(1)),
+    Bytes     UInt64   CODEC(ZSTD(1)),
+    Packets   UInt64   CODEC(ZSTD(1))
 )
 ENGINE = MergeTree
 PARTITION BY toYYYYMMDD(Timestamp)
@@ -139,6 +139,10 @@ PARTITION BY toYYYYMM(Timestamp)
 ORDER BY Timestamp;
 ```
 
+- Compression: `ZSTD(1)` codec on all columns, plus `DoubleDelta` for
+  `Timestamp` (monotonically-increasing values compress especially well with
+  delta encoding). At millions of rows/day, this typically cuts disk usage by
+  60-80% with negligible CPU overhead.
 - IPs stored as `UInt32` (matching `InboundFlowRecord`'s in-memory
   representation — no string conversion, no allocation on insert).
   Analysts use `IPv4NumToString(SrcIp)` / `IPv4NumToString(DstIp)` in SELECT
