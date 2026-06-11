@@ -39,6 +39,8 @@ public sealed class NetFlowClickHouseWriter : BackgroundService
 
     private static readonly TimeSpan MaxRetryBudget = TimeSpan.FromMinutes(2);
 
+    // Порядок столбцов должен совпадать с порядком значений в массиве,
+    // формируемом в ConsumeLoopAsync (buffer.Add([...])).
     private static readonly string[] ColumnNames =
     [
         "Timestamp", "SrcIp", "DstIp", "SrcPort", "DstPort", "Protocol", "Bytes", "Packets",
@@ -104,6 +106,7 @@ public sealed class NetFlowClickHouseWriter : BackgroundService
 
             while (reader.TryRead(out var record))
             {
+                // Порядок значений должен совпадать с ColumnNames.
                 buffer.Add(
                 [
                     record.FlowTimestamp.UtcDateTime,
@@ -143,12 +146,17 @@ public sealed class NetFlowClickHouseWriter : BackgroundService
                     .CreateOpenConnectionAsync(ct)
                     .ConfigureAwait(false);
 
+                // ClickHouseBulkCopy is marked [Obsolete] in ClickHouse.Driver 1.2.0,
+                // but there is no non-obsolete bulk-insert alternative available;
+                // revisit when the driver is upgraded.
+#pragma warning disable CS0618
                 using var bulkCopy = new ClickHouseBulkCopy(connection)
                 {
                     DestinationTableName = _opts.RawTableName,
                     ColumnNames          = ColumnNames,
                     BatchSize            = rowCount,
                 };
+#pragma warning restore CS0618
 
                 await bulkCopy.WriteToServerAsync(buffer, ct).ConfigureAwait(false);
 
