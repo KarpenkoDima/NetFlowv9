@@ -1,0 +1,56 @@
+services:
+  clickhouse:
+    image: clickhouse/clickhouse-server:latest #24.8
+    container_name: netflow-clickhouse
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    environment:
+      - CLICKHOUSE_DB=netflow
+      - CLICKHOUSE_USER=default
+      - CLICKHOUSE_PASSWORD=
+      - CLICKHOUSE_DEFAULT_ACCESS_MANAGEMENT=1
+      - ./timezone.xml:/etc/clickhouse-server/config.d/timezone.xml
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+      - ./infra/clickhouse-init:/docker-entrypoint-initdb.d
+    ulimits:
+      nofile:
+        soft: 262144
+        hard: 262144
+
+  livepipeline:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netflow-livepipeline
+    environment:
+      - Pipeline__UdpPort=2055
+      - ClickHouse__ConnectionString=Host=clickhouse;Port=8123;Database=netflow;User=default;Password=
+    ports:
+      - "5000:5000"       # HTTP / WebSocket дашборд
+      - "2055:2055/udp"   # NetFlow UDP
+    depends_on:
+      - clickhouse
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: netflow-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_INSTALL_PLUGINS=grafana-clickhouse-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+      - ./infra/grafana/dashboards:/var/lib/grafana/dashboards
+    depends_on:
+      - clickhouse
+
+volumes:
+  clickhouse-data:
+  grafana-data:
