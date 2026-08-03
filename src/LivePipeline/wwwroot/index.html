@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetFlow Live Dashboard</title>
+    <style>
+        :root {
+            --bg: #0f1419;
+            --card-bg: #1a2230;
+            --border: #2a3548;
+            --text: #e6edf3;
+            --muted: #8b98a9;
+            --accent: #58a6ff;
+            --green: #3fb950;
+            --amber: #d29922;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg);
+            color: var(--text);
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #161b22;
+            border-bottom: 1px solid var(--border);
+            padding: 15px 0;
+            margin-bottom: 20px;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            color: var(--muted);
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: var(--muted);
+            display: inline-block;
+        }
+
+        .dot.live {
+            background-color: var(--green);
+            box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.6);
+            animation: pulse-live 2s infinite;
+        }
+
+        .dot.reconnecting {
+            background-color: var(--amber);
+            box-shadow: 0 0 0 0 rgba(210, 153, 34, 0.6);
+            animation: pulse-reconnect 1.2s infinite;
+        }
+
+        @keyframes pulse-live {
+            0% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(63, 185, 80, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(63, 185, 80, 0); }
+        }
+
+        @keyframes pulse-reconnect {
+            0% { box-shadow: 0 0 0 0 rgba(210, 153, 34, 0.5); }
+            70% { box-shadow: 0 0 0 8px rgba(210, 153, 34, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(210, 153, 34, 0); }
+        }
+
+        .status.live #status-text {
+            color: var(--green);
+        }
+
+        .status.reconnecting #status-text {
+            color: var(--amber);
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 900px) {
+            .summary-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .summary-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stat-box {
+            padding: 18px;
+            background-color: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            grid-gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            padding: 20px;
+        }
+
+        .card-title {
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            font-size: 16px;
+            color: var(--text);
+        }
+
+        .chart-container {
+            position: relative;
+            height: 320px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>NetFlow Live Dashboard</h1>
+            <div class="status reconnecting" id="connection-status">
+                <span class="dot reconnecting" id="status-dot"></span>
+                <span id="status-text">Connecting...</span>
+            </div>
+			<a href="index-2.html">Live Dashboard</a>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="summary-stats">
+            <div class="stat-box">
+                <div class="stat-value" id="kpi-flows">—</div>
+                <div class="stat-label">Flows/sec</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="kpi-bps">—</div>
+                <div class="stat-label">Bits/sec</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="kpi-pps">—</div>
+                <div class="stat-label">Packets/sec</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-value" id="kpi-updated">—</div>
+                <div class="stat-label">Last Update</div>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <h3 class="card-title">Top Source IPs</h3>
+                <div class="chart-container">
+                    <canvas id="src-ip-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Top Destination IPs</h3>
+                <div class="chart-container">
+                    <canvas id="dst-ip-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Protocol Distribution</h3>
+                <div class="chart-container">
+                    <canvas id="protocol-chart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <h3 class="card-title">Traffic Over Time</h3>
+                <div class="chart-container">
+                    <canvas id="time-chart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="live-dashboard.js"></script>
+</body>
+</html>

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetFlow Dashboard</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0; padding: 0;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 14px 0;
+        }
+        .header-content {
+            max-width: 1200px; margin: 0 auto;
+            padding: 0 20px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 { margin: 0; font-size: 22px; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+
+        /* ── WS Connection Bar ──────────────────────────────────────── */
+        .ws-bar {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+            padding: 14px 20px;
+            margin-bottom: 18px;
+            display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+        }
+        .ws-bar label { font-weight: 600; white-space: nowrap; }
+        .ws-bar input[type=text] {
+            flex: 1; min-width: 260px;
+            padding: 8px 12px;
+            border: 1px solid #ddd; border-radius: 4px;
+            font-size: 14px;
+        }
+        .ws-bar button {
+            padding: 8px 18px;
+            background: #2980b9; color: white;
+            border: none; border-radius: 4px;
+            cursor: pointer; font-size: 14px; white-space: nowrap;
+        }
+        .ws-bar button:hover { background: #1c6ea4; }
+        .ws-status {
+            padding: 5px 12px; border-radius: 20px;
+            font-size: 13px; font-weight: 600;
+            white-space: nowrap;
+        }
+        .ws-status--connected    { background: #d4edda; color: #155724; }
+        .ws-status--disconnected { background: #f8f9fa; color: #6c757d; }
+        .ws-status--connecting   { background: #fff3cd; color: #856404; }
+        .ws-status--error        { background: #f8d7da; color: #721c24; }
+
+        /* ── File upload ────────────────────────────────────────────── */
+        .file-input-container { margin-bottom: 18px; }
+        .file-input           { display: none; }
+        .file-input-label {
+            display: inline-block; padding: 9px 14px;
+            background: #3498db; color: white;
+            border-radius: 4px; cursor: pointer;
+        }
+        .file-input-label:hover { background: #2980b9; }
+        .file-name { margin-left: 10px; font-style: italic; }
+
+        /* ── Tabs ───────────────────────────────────────────────────── */
+        .tabs { display: flex; margin-bottom: 20px; border-bottom: 1px solid #ddd; flex-wrap: wrap; }
+        .tab {
+            padding: 10px 20px; cursor: pointer;
+            background: #f8f9fa; border: 1px solid #ddd;
+            border-bottom: none; margin-right: 5px;
+            border-radius: 4px 4px 0 0; font-size: 14px;
+        }
+        .tab.active {
+            background: white;
+            border-bottom: 1px solid white;
+            margin-bottom: -1px; font-weight: bold;
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        /* ── Cards ──────────────────────────────────────────────────── */
+        .card {
+            background: white; border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,.08);
+            padding: 20px; margin-bottom: 20px;
+        }
+        .card-header {
+            margin: 0 0 14px; padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+            font-size: 16px; color: #2c3e50;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        /* ── Dashboard grids ────────────────────────────────────────── */
+        .dashboard      { display: grid; grid-template-columns: repeat(2,1fr); gap: 20px; }
+        .full-width     { grid-column: span 2; }
+        .summary-card   { grid-column: span 2; }
+
+        @media (max-width: 768px) {
+            .dashboard { grid-template-columns: 1fr; }
+            .full-width, .summary-card { grid-column: span 1; }
+        }
+
+        /* ── Stat boxes ─────────────────────────────────────────────── */
+        .summary-stats  { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; }
+        .live-stats     { display: grid; grid-template-columns: repeat(5,1fr); gap: 14px; margin-bottom: 20px; }
+        .stat-box { padding: 14px; background: #f8f9fa; border-radius: 6px; text-align: center; }
+        .stat-value { font-size: 22px; font-weight: bold; margin-bottom: 4px; color: #2980b9; }
+        .stat-label { font-size: 12px; color: #7f8c8d; }
+
+        @media (max-width: 768px) {
+            .summary-stats, .live-stats { grid-template-columns: repeat(2,1fr); }
+        }
+
+        /* ── Charts ─────────────────────────────────────────────────── */
+        .chart-container        { position: relative; height: 320px; width: 100%; }
+        .chart-container--tall  { height: 400px; }
+        #protocol-chart-container { height: 400px; }
+
+        /* ── Tables ─────────────────────────────────────────────────── */
+        table { width: 100%; border-collapse: collapse; }
+        table th, table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #eee; }
+        table th { background: #f8f9fa; font-weight: 600; color: #2c3e50; }
+
+        /* ── Loader ─────────────────────────────────────────────────── */
+        .loader { text-align: center; padding: 40px; font-style: italic; color: #7f8c8d; }
+
+        /* ── Pagination ─────────────────────────────────────────────── */
+        .pagination-controls {
+            display: flex; flex-wrap: wrap;
+            justify-content: center; align-items: center;
+            margin: 16px 0; padding: 10px;
+            background: #f8f9fa; border-radius: 8px;
+        }
+        .pagination-btn {
+            padding: 6px 11px; margin: 0 4px;
+            border: 1px solid #ddd; background: white;
+            border-radius: 4px; cursor: pointer;
+        }
+        .pagination-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .pagination-btn:hover:not(:disabled) { background: #e9ecef; }
+        .pagination-info { margin: 0 10px; font-size: 13px; color: #495057; }
+        .record-info { width: 100%; text-align: center; margin-top: 8px; font-size: 12px; color: #6c757d; }
+
+        /* ── Live badge ─────────────────────────────────────────────── */
+        .live-badge {
+            display: inline-block; padding: 2px 8px;
+            background: #dc3545; color: white;
+            border-radius: 10px; font-size: 11px; font-weight: bold;
+            animation: pulse 1.5s infinite;
+            margin-left: 8px;
+        }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="header-content">
+        <h1>NetFlow Analyzer Dashboard</h1>
+        <div id="netflow-version"></div>
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- ═══ WebSocket Connection Bar ═══════════════════════════════════ -->
+    <div class="ws-bar">
+        <label for="ws-url">Live Pipeline:</label>
+        <input type="text" id="ws-url"
+               placeholder="ws://localhost:5000/ws/metrics"
+               value="ws://localhost:5000/ws/metrics">
+        <button id="ws-connect-btn">Подключить</button>
+        <span class="ws-status ws-status--disconnected" id="ws-status">Отключено</span>
+    </div>
+
+    <!-- ═══ Static File Mode ════════════════════════════════════════════ -->
+    <div class="file-input-container">
+        <label for="upload-file" class="file-input-label">Загрузить NetFlow JSON</label>
+        <input type="file" id="upload-file" class="file-input" accept=".json">
+        <span class="file-name" id="file-name"></span>
+    </div>
+
+    <div id="loading" class="loader">
+        Подключитесь к live pipeline или загрузите JSON-файл
+    </div>
+
+    <!-- ═══ Tabs ═════════════════════════════════════════════════════════ -->
+    <div class="tabs">
+        <div class="tab active" data-tab="live">⚡ Live</div>
+        <div class="tab" data-tab="summary">Summary</div>
+        <div class="tab" data-tab="flows">Flows</div>
+        <div class="tab" data-tab="templates">Templates</div>
+        <div class="tab" data-tab="raw">Raw Data</div>
+    </div>
+
+    <!-- ═══ LIVE TAB ════════════════════════════════════════════════════ -->
+    <div class="tab-content active" id="live-tab">
+
+        <div id="live-dashboard" style="display:none;">
+
+            <!-- Live stat boxes -->
+            <div class="card">
+                <h3 class="card-header">
+                    Статистика в реальном времени
+                    <span class="live-badge">LIVE</span>
+                </h3>
+                <div class="live-stats">
+                    <div class="stat-box">
+                        <div class="stat-value" id="live-bps">—</div>
+                        <div class="stat-label">Пропускная способность</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="live-pps">—</div>
+                        <div class="stat-label">Пакетов/сек</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="live-flows">—</div>
+                        <div class="stat-label">Flow-записей/сек</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="live-bytes">—</div>
+                        <div class="stat-label">Байт/сек</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="live-ts">—</div>
+                        <div class="stat-label">Последний тик</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Traffic over time -->
+            <div class="card">
+                <h3 class="card-header">Трафик (скользящие 60 секунд)</h3>
+                <div class="chart-container chart-container--tall">
+                    <canvas id="live-time-chart"></canvas>
+                </div>
+            </div>
+
+            <!-- Top IPs grid -->
+            <div class="dashboard">
+                <div class="card">
+                    <h3 class="card-header">Top-10 Source IP (байт/сек)</h3>
+                    <div class="chart-container">
+                        <canvas id="live-src-ip-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Top-10 Destination IP (байт/сек)</h3>
+                    <div class="chart-container">
+                        <canvas id="live-dst-ip-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card full-width">
+                    <h3 class="card-header">Распределение по протоколам</h3>
+                    <div class="chart-container" id="live-protocol-chart-container">
+                        <canvas id="live-protocol-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /live-dashboard -->
+
+        <div id="live-placeholder" class="loader" style="display:block;">
+            Нажмите «Подключить» для старта live-мониторинга
+        </div>
+
+    </div><!-- /live-tab -->
+
+    <!-- ═══ SUMMARY TAB (Static File) ═══════════════════════════════════ -->
+    <div class="tab-content" id="summary-tab">
+        <div id="dashboard-container" style="display:none;">
+
+            <div class="dashboard">
+                <div class="card summary-card">
+                    <h3 class="card-header">NetFlow Summary</h3>
+                    <div class="summary-stats">
+                        <div class="stat-box">
+                            <div class="stat-value" id="total-packets">—</div>
+                            <div class="stat-label">Total Packets</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="total-flows">—</div>
+                            <div class="stat-label">Total Flows</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="total-templates">—</div>
+                            <div class="stat-label">Templates</div>
+                        </div>
+                        <div class="stat-box">
+                            <div class="stat-value" id="time-span">—</div>
+                            <div class="stat-label">Time Span</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Traffic by IP</h3>
+                    <div class="chart-container">
+                        <canvas id="ip-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Traffic by Port</h3>
+                    <div class="chart-container">
+                        <canvas id="port-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Protocol Distribution</h3>
+                    <div class="chart-container" id="protocol-chart-container">
+                        <canvas id="protocol-chart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 class="card-header">Traffic Over Time</h3>
+                    <div class="chart-container">
+                        <canvas id="time-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div><!-- /summary-tab -->
+
+    <!-- ═══ FLOWS TAB ════════════════════════════════════════════════════ -->
+    <div class="tab-content" id="flows-tab">
+        <div class="card full-width">
+            <h3 class="card-header">Flow Records</h3>
+            <div class="table-container">
+                <table id="flows-table">
+                    <thead>
+                        <tr>
+                            <th>Source IP</th>
+                            <th>Src Port</th>
+                            <th>Destination IP</th>
+                            <th>Dst Port</th>
+                            <th>Protocol</th>
+                            <th>Bytes</th>
+                            <th>Packets</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══ TEMPLATES TAB ════════════════════════════════════════════════ -->
+    <div class="tab-content" id="templates-tab">
+        <div class="card full-width">
+            <h3 class="card-header">Template Records</h3>
+            <div id="templates-container"></div>
+        </div>
+    </div>
+
+    <!-- ═══ RAW DATA TAB ════════════════════════════════════════════════ -->
+    <div class="tab-content" id="raw-tab">
+        <div class="card full-width">
+            <h3 class="card-header">Raw NetFlow Data</h3>
+            <pre id="raw-data" style="overflow:auto;max-height:600px;font-size:12px;"></pre>
+        </div>
+    </div>
+
+</div><!-- /container -->
+
+<script>
+// Показываем dashboard-container при загрузке файла
+// (app.js устанавливает display:block, но он скрыт внутри tab-content)
+// Переключаемся на Summary-вкладку автоматически при загрузке файла.
+document.getElementById('upload-file').addEventListener('change', () => {
+    const summaryTab = document.querySelector('.tab[data-tab="summary"]');
+    if (summaryTab) summaryTab.click();
+    document.getElementById('dashboard-container').style.display = 'block';
+    document.getElementById('loading').style.display = 'none';
+});
+
+// Live dashboard: скрываем placeholder после подключения
+document.getElementById('ws-connect-btn').addEventListener('click', () => {
+    // Небольшая задержка — ждём смену статуса
+    setTimeout(() => {
+        const connected = document.getElementById('ws-status')
+            .classList.contains('ws-status--connected');
+        document.getElementById('live-placeholder').style.display = connected ? 'none' : 'block';
+    }, 400);
+});
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
