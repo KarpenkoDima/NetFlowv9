@@ -1,0 +1,30 @@
+# Default to auto-detection of text files and normalize line endings
+* text=auto
+
+# Ensure all C# and other source code files are treated as text and normalized
+*.cs text
+*.sln text
+*.csproj text
+*.vb text
+*.fs text
+*.json text
+*.xml text
+*.config text
+*.md text
+
+# Explicitly set line endings for Windows-specific script files
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Treat binary files as non-text to prevent corruption and useless diffs
+*.dll binary
+*.exe binary
+*.pdb binary
+*.suo binary
+*.user binary
+*.obj binary
+*.tlog binary
+*.log binary
+*.png binary
+*.jpg binary
+*.ico binary
