@@ -1131,7 +1131,7 @@ public async Task<IActionResult> AnalyzePcap(IFormFile pcapFile)
 - **Lines of Code:** ~1,900
 - **Files:** 26+
 - **Commits:** 13
-- **Branches:** 3 (main, develop, claude/*)
+- **Branches:** Historical development used main, develop, and temporary feature branches.
 - **Documentation:** 2,200+ lines (README + GUIDE)
 
 ## Key Takeaways

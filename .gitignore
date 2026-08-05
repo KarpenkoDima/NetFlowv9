@@ -483,8 +483,7 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 
-<<<<<<< HEAD
-# Claude Code graph analysis output
+# Generated graph analysis output
 graphify-out/
 
 # classify a project primarily as CSharp, while ignoring JavaScript and HTML files
