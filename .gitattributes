@@ -28,3 +28,8 @@
 *.png binary
 *.jpg binary
 *.ico binary
+
+# GitHub language statistics
+*.js linguist-detectable=false
+*.html linguist-detectable=false
+*.cs linguist-detectable=true
