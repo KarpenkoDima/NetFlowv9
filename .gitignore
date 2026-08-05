@@ -3,8 +3,10 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
-# dotenv files
+# Local environment files and secrets
 .env
+.env.*
+!.env.example
 
 # User-specific files
 *.rsuser
@@ -486,7 +488,3 @@ $RECYCLE.BIN/
 # Generated graph analysis output
 graphify-out/
 
-# classify a project primarily as CSharp, while ignoring JavaScript and HTML files
-*.js linguist-detectable=false
-*.html linguist-detectable=false
-*.cs linguist-detectable=true
